@@ -1,11 +1,20 @@
 # Pixel Estoque
-Aplicativo temporário de controle de estoque, pronto para publicação na Vercel.
 
-## Publicar
-1. Importe esta pasta em um repositório GitHub.
-2. Na Vercel, escolha **Add New > Project** e importe o repositório.
-3. Framework preset: **Other**. Não há comando de build.
-4. Clique em Deploy.
+Aplicativo temporário, responsivo e instalável para controle de estoque da Pixel Oficina Criativa.
+
+## Recursos
+
+- Login local para acesso casual (não substitui autenticação de servidor)
+- Dashboard mobile-first
+- Produtos, fornecedores, entradas e saídas
+- Alertas de estoque baixo e zerado
+- Importação inicial de DANFE/NF-e em PDF com conferência
+- Backup JSON e exportações CSV compatíveis com a versão anterior
 
 ## Dados
-Os dados ficam no navegador (localStorage). Use o backup JSON frequentemente.
+
+Os registros continuam na chave `pixelEstoqueDB_v2` do `localStorage`, preservando os dados da versão anterior no mesmo navegador e domínio. Faça backups JSON frequentes.
+
+## Publicação
+
+Projeto estático pronto para Vercel, sem comando de build.
