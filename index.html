@@ -33,6 +33,7 @@
     @media(max-width:900px){body{background:linear-gradient(180deg,#f5f8fd 0,#eef4fb 100%);min-height:100dvh}.app{min-height:100dvh}.shell{padding-top:max(18px,env(safe-area-inset-top))}.topbar{padding:4px 2px}.panel,.stat{box-shadow:0 8px 26px rgba(22,52,92,.07)}dialog{max-height:calc(100dvh - 20px)}dialog::backdrop{backdrop-filter:blur(5px)}.sidebar .pixel-logo{width:var(--brand-logo-size)}}
     .sales-chart{display:grid;gap:12px}.chart-row{display:grid;grid-template-columns:minmax(120px,220px) 1fr auto;gap:12px;align-items:center}.chart-label{min-width:0;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.chart-track{height:13px;border-radius:999px;background:#e8eef7;overflow:hidden}.chart-bar{height:100%;min-width:4px;border-radius:999px;background:linear-gradient(90deg,#0754c7,#20b7e6)}.chart-value{font-weight:900;color:var(--blue);white-space:nowrap}.sale-summary{padding:10px 12px;border-radius:12px;background:#f5f9ff;color:#36506f;font-size:.82rem}
     @media(max-width:900px){.review-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.review-row label:first-child{grid-column:1/-1}.chart-row{grid-template-columns:minmax(90px,130px) 1fr auto;gap:8px}.chart-label{font-size:.78rem}}
+    .login-error{color:var(--red);font-size:.84rem;font-weight:700;margin:12px 0 0}.sync-status{display:inline-flex;align-items:center;gap:7px;color:var(--muted);font-size:.76rem}.sync-status:before{content:"";width:8px;height:8px;border-radius:50%;background:#98a2b3}.sync-status.online:before{background:#12b76a}.sync-status.syncing:before{background:#f79009}.sync-status.error:before{background:#f04438}
   </style>
 </head>
 <body>
@@ -41,10 +42,11 @@
   <form id="loginForm" class="login-card">
     <div class="logo"><img class="pixel-logo" src="/assets/logo-pixel-transparent.png" alt="Pixel Oficina Criativa"></div>
     <h2>Bem-vindo</h2><p class="muted">Entre para acessar o estoque.</p>
-    <label>Usuário<input id="loginUser" autocomplete="username" value="pixel" required></label>
+    <label>E-mail<input id="loginUser" type="email" autocomplete="username" placeholder="voce@pixeloficinacriativa.com.br" required></label>
     <label>Senha<input id="loginPass" type="password" autocomplete="current-password" required></label>
-    <button class="btn blue" style="width:100%;padding:13px">Entrar</button>
-    <p class="login-help">Primeiro acesso: usuário <b>pixel</b> e senha <b>pixel123</b>. Esta proteção é local e serve apenas para evitar acesso casual no aparelho.</p>
+    <button id="loginButton" class="btn blue" style="width:100%;padding:13px">Entrar</button>
+    <p id="loginError" class="login-error hidden"></p>
+    <p class="login-help">Use o e-mail e a senha cadastrados no Supabase. Novos usuários são criados pelo administrador.</p>
   </form>
 </section>
 
@@ -57,7 +59,7 @@
     <div class="sidebar-foot"><button id="logoutDesk" class="btn">Sair</button></div>
   </aside>
   <main class="shell">
-    <header class="topbar"><div><h1 id="viewTitle">Visão geral</h1><p id="today" class="muted"></p></div><div class="user"><span>Pixel Oficina Criativa</span><button class="avatar" data-view="settings" aria-label="Abrir configurações">P</button></div></header>
+    <header class="topbar"><div><h1 id="viewTitle">Visão geral</h1><p id="today" class="muted"></p><span id="syncStatus" class="sync-status">Conectando…</span></div><div class="user"><span id="userEmail">Pixel Oficina Criativa</span><button class="avatar" data-view="settings" aria-label="Abrir configurações">P</button></div></header>
 
     <section id="dashboard" class="view active">
       <div class="hero-actions"><button class="action-big entry" data-open-movement="entrada"><strong>＋ Entrada</strong><span>Adicionar ao estoque</span></button><button class="action-big exit" data-open-movement="saida"><strong>− Saída</strong><span>Retirar do estoque</span></button></div>
@@ -74,8 +76,8 @@
     <section id="exits" class="view panel"><div class="toolbar"><h2>Lista de saídas</h2><button class="btn red" data-open-movement="saida">− Nova saída</button><input id="exitSearch" class="search" placeholder="Buscar saída"></div><div id="exitTable"></div></section>
     <section id="suppliers" class="view panel"><div class="toolbar"><h2>Fornecedores</h2><button id="newSupplier" class="btn blue">＋ Novo fornecedor</button></div><div id="supplierList"></div></section>
     <section id="import" class="view panel"><h2>Importar NF-e</h2><div class="notice"><b>Recomendado: XML da NF-e.</b> Ele contém os produtos em campos estruturados e oferece leitura precisa. O PDF/DANFE continua disponível como alternativa aproximada e sempre exige conferência.</div><div class="pdf-drop"><p><b>Selecione o XML da NF-e ou o PDF/DANFE</b></p><input id="pdfInput" type="file" accept="application/xml,text/xml,.xml,application/pdf,.pdf"><p id="pdfStatus" class="muted">Nenhum arquivo selecionado.</p></div><div id="pdfReview" class="hidden"><div class="grid2" style="margin:18px 0"><label>Fornecedor identificado<input id="pdfSupplier"></label><label>Documento / número da nota<input id="pdfDocument"></label></div><h2>Conferência dos itens</h2><div id="reviewItems"></div><div class="actions"><button id="addReviewRow" class="btn outline">＋ Adicionar item</button><button id="confirmPdf" class="btn green">Confirmar e dar entrada</button></div></div></section>
-    <section id="backup" class="view panel"><h2>Backup e exportação</h2><div class="notice"><b>Importante:</b> os dados continuam salvos neste navegador. Faça um backup JSON regularmente, especialmente antes de trocar de aparelho ou limpar dados do navegador.</div><div class="actions"><button id="exportJson" class="btn blue">Backup completo JSON</button><button id="exportProducts" class="btn green">produtos.csv</button><button id="exportMovements" class="btn green">movimentacoes.csv</button><button id="exportSuppliers" class="btn green">fornecedores.csv</button><button id="exportBalance" class="btn green">saldo_estoque.csv</button><label class="btn outline">Importar backup<input id="importJson" class="hidden" type="file" accept=".json,application/json"></label></div></section>
-    <section id="settings" class="view panel"><div class="setting-card"><h2>Identidade do aplicativo</h2><p class="muted">Escolha o logo e ajuste o tamanho usado no menu do computador. A preferência fica salva neste aparelho.</p><div class="logo-preview"><img id="settingsLogoPreview" src="/assets/logo-pixel-transparent.png" alt="Prévia do logo"></div><label>Arquivo do logo<input id="brandLogoInput" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"></label><label style="margin-top:16px">Tamanho do logo<div class="range-row"><input id="brandLogoSize" type="range" min="90" max="205" step="1" value="150"><output id="brandLogoSizeOutput">150 px</output></div></label><div class="actions"><button id="resetBrandLogo" class="btn outline">Restaurar logo padrão</button></div><h2 style="margin-top:28px">Código automático de produtos</h2><div class="notice">Novos produtos recebem um código como <b>PXLCAN001</b>: PXL identifica a Pixel, CAN resume a categoria e 001 representa a ordem de inserção.</div></div></section>
+    <section id="backup" class="view panel"><h2>Backup e exportação</h2><div class="notice"><b>Proteção extra:</b> o estoque agora fica sincronizado no Supabase. O backup JSON continua disponível para cópias externas e migração futura.</div><div class="actions"><button id="exportJson" class="btn blue">Backup completo JSON</button><button id="exportProducts" class="btn green">produtos.csv</button><button id="exportMovements" class="btn green">movimentacoes.csv</button><button id="exportSuppliers" class="btn green">fornecedores.csv</button><button id="exportBalance" class="btn green">saldo_estoque.csv</button><label class="btn outline">Importar backup<input id="importJson" class="hidden" type="file" accept=".json,application/json"></label></div></section>
+    <section id="settings" class="view panel"><div class="setting-card"><h2>Banco de dados online</h2><div id="cloudStatusCard" class="notice">Verificando a conexão com o Supabase…</div><button id="syncNow" class="btn blue">Sincronizar agora</button><h2 style="margin-top:28px">Identidade do aplicativo</h2><p class="muted">Escolha o logo e ajuste o tamanho usado no menu do computador. A preferência fica salva neste aparelho.</p><div class="logo-preview"><img id="settingsLogoPreview" src="/assets/logo-pixel-transparent.png" alt="Prévia do logo"></div><label>Arquivo do logo<input id="brandLogoInput" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"></label><label style="margin-top:16px">Tamanho do logo<div class="range-row"><input id="brandLogoSize" type="range" min="90" max="205" step="1" value="150"><output id="brandLogoSizeOutput">150 px</output></div></label><div class="actions"><button id="resetBrandLogo" class="btn outline">Restaurar logo padrão</button></div><h2 style="margin-top:28px">Código automático de produtos</h2><div class="notice">Novos produtos recebem um código como <b>PXLCAN001</b>: PXL identifica a Pixel, CAN resume a categoria e 001 representa a ordem de inserção.</div></div></section>
   </main>
   <nav class="mobile-nav" aria-label="Navegação principal">
     <button class="active" data-view="dashboard"><svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3Z"/></svg><span>Início</span></button>
@@ -91,11 +93,20 @@
 <dialog id="supplierDialog"><div class="modal-head"><h3>Novo fornecedor</h3><button class="btn" data-close="supplierDialog">Fechar</button></div><div class="modal-body"><form id="supplierForm" class="grid2"><label>Nome<input id="supplierName" required></label><label>Contato<input id="supplierContact"></label><label class="full">Observações<textarea id="supplierNotes"></textarea></label><button class="btn blue">Salvar fornecedor</button></form></div></dialog>
 
 <script type="module">
-const KEY='pixelEstoqueDB_v2', SESSION='pixelEstoqueSession', BRAND='pixelEstoqueBrand_v1';
+import {createClient} from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+const SUPABASE_URL='https://hkuiwqbnbbhvmrlnykah.supabase.co';
+const SUPABASE_KEY='sb_publishable_TfPvhYpEFsKIh4G1pHCPnA__ElLdGM4';
+const STATE_ID='pixel-main', KEY='pixelEstoqueDB_v2', BRAND='pixelEstoqueBrand_v1';
+const supabase=createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const emptyDB=()=>({schemaVersion:5,app:'Pixel Estoque',createdAt:new Date().toISOString(),products:[],categories:[],brands:[],suppliers:[],movements:[],imports:[]});
-let db=load(),review=[],importSource=null;
-function load(){try{const x=JSON.parse(localStorage.getItem(KEY));if(x&&Array.isArray(x.products)&&Array.isArray(x.movements)){x.suppliers=Array.isArray(x.suppliers)?x.suppliers:[];x.categories=Array.isArray(x.categories)?x.categories:[];x.brands=Array.isArray(x.brands)?x.brands:[];x.imports=Array.isArray(x.imports)?x.imports:[];return x}}catch{}return emptyDB()}
-function save(){db.schemaVersion=5;localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
+let db=load(),review=[],importSource=null,activeUser=null,cloudReady=false,syncTimer=null,isApplyingRemote=false;
+function normalizeDB(x){if(!x||!Array.isArray(x.products)||!Array.isArray(x.movements))return emptyDB();x.suppliers=Array.isArray(x.suppliers)?x.suppliers:[];x.categories=Array.isArray(x.categories)?x.categories:[];x.brands=Array.isArray(x.brands)?x.brands:[];x.imports=Array.isArray(x.imports)?x.imports:[];return x}
+function load(){try{return normalizeDB(JSON.parse(localStorage.getItem(KEY)))}catch{return emptyDB()}}
+function setSyncStatus(text,state=''){syncStatus.textContent=text;syncStatus.className=`sync-status ${state}`;cloudStatusCard.textContent=text}
+function save(){db.schemaVersion=5;localStorage.setItem(KEY,JSON.stringify(db));renderAll();if(cloudReady&&!isApplyingRemote){clearTimeout(syncTimer);setSyncStatus('Salvando…','syncing');syncTimer=setTimeout(pushCloud,350)}}
+async function pushCloud(){if(!activeUser)return;const {error}=await supabase.from('app_state').upsert({id:STATE_ID,data:db,updated_by:activeUser.id},{onConflict:'id'});if(error){console.error(error);setSyncStatus('Falha ao sincronizar. Os dados continuam salvos neste aparelho.','error');return false}setSyncStatus('Dados sincronizados','online');return true}
+async function loadCloud(){setSyncStatus('Sincronizando…','syncing');const {data,error}=await supabase.from('app_state').select('data,updated_at').eq('id',STATE_ID).maybeSingle();if(error){console.error(error);cloudReady=false;setSyncStatus('Banco ainda não preparado. Execute o arquivo supabase-setup.sql.','error');return false}cloudReady=true;if(data?.data){isApplyingRemote=true;db=normalizeDB(data.data);localStorage.setItem(KEY,JSON.stringify(db));renderAll();isApplyingRemote=false;setSyncStatus('Dados sincronizados','online')}else await pushCloud();return true}
+async function enterApp(session){activeUser=session.user;userEmail.textContent=session.user.email||'Usuário Pixel';loginScreen.classList.add('hidden');app.classList.remove('hidden');renderAll();await loadCloud()}
 const $=id=>document.getElementById(id), num=v=>Number(String(v??0).replace(',','.'))||0, uuid=()=>crypto.randomUUID?.()||`id-${Date.now()}-${Math.random().toString(16).slice(2)}`, esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])), brl=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(num(v)), date=v=>new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(new Date(v));
 const product=id=>db.products.find(x=>x.id===id), supplier=id=>db.suppliers.find(x=>x.id===id), category=id=>db.categories.find(x=>x.id===id), brand=id=>db.brands.find(x=>x.id===id);
 function ensureCategory(name){const clean=name.trim();let c=db.categories.find(x=>x.name.toLowerCase()===clean.toLowerCase());if(!c){c={id:uuid(),name:clean};db.categories.push(c)}return c}
@@ -107,11 +118,12 @@ function nextSku(categoryName){const max=db.products.reduce((highest,p)=>{const 
 function signed(m){if(m.type==='entrada')return num(m.quantity);if(m.type==='saida')return-num(m.quantity);return m.direction==='entrada'?num(m.quantity):-num(m.quantity)}
 function balance(pid,until){return db.movements.filter(m=>m.productId===pid&&(!until||new Date(m.date)<=new Date(until))).reduce((s,m)=>s+signed(m),0)}
 function genericSupplier(){let s=db.suppliers.find(x=>x.name.toLowerCase()==='fornecedor genérico');if(!s){s={id:uuid(),name:'Fornecedor Genérico',contact:'',notes:'Criado automaticamente'};db.suppliers.push(s)}return s}
-function showApp(){loginScreen.classList.add('hidden');app.classList.remove('hidden');renderAll()}
-if(sessionStorage.getItem(SESSION)==='1')showApp();
-loginForm.onsubmit=e=>{e.preventDefault();if(loginUser.value.trim().toLowerCase()==='pixel'&&loginPass.value==='pixel123'){sessionStorage.setItem(SESSION,'1');showApp()}else alert('Usuário ou senha incorretos.')};
-logoutDesk.onclick=()=>{sessionStorage.removeItem(SESSION);location.reload()};
+loginForm.onsubmit=async e=>{e.preventDefault();loginError.classList.add('hidden');loginButton.disabled=true;loginButton.textContent='Entrando…';const {data,error}=await supabase.auth.signInWithPassword({email:loginUser.value.trim(),password:loginPass.value});loginButton.disabled=false;loginButton.textContent='Entrar';if(error){loginError.textContent='E-mail ou senha incorretos.';loginError.classList.remove('hidden');return}await enterApp(data.session)};
+logoutDesk.onclick=async()=>{await supabase.auth.signOut();location.reload()};
+syncNow.onclick=async()=>{if(await pushCloud())alert('Estoque sincronizado com sucesso.')};
 $('today').textContent=new Intl.DateTimeFormat('pt-BR',{dateStyle:'full'}).format(new Date());
+const {data:{session:initialSession}}=await supabase.auth.getSession();
+if(initialSession)await enterApp(initialSession);
 const titles={dashboard:'Visão geral',products:'Produtos',entries:'Entradas',exits:'Saídas',suppliers:'Fornecedores',import:'Importar NF-e',backup:'Backup e exportação',settings:'Configurações'};
 function go(name){document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id===name));document.querySelectorAll('[data-view]').forEach(x=>x.classList.toggle('active',x.dataset.view===name));viewTitle.textContent=titles[name]||'Pixel Estoque';scrollTo(0,0)}
 document.querySelectorAll('[data-view]').forEach(x=>x.onclick=()=>go(x.dataset.view));document.querySelectorAll('[data-view-go]').forEach(x=>x.onclick=()=>go(x.dataset.viewGo));document.querySelectorAll('[data-close]').forEach(x=>x.onclick=()=>$(x.dataset.close).close());
