@@ -1,0 +1,11 @@
+{
+  // Exemplo para incorporar os arquivos estáticos ao futuro Worker.
+  // Ajustar nome e diretório conforme a estrutura do sistema principal.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "pixel-oficina-criativa",
+  "compatibility_date": "2026-07-26",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  }
+}

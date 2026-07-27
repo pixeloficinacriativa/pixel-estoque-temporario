@@ -28,3 +28,16 @@ Somente usuários autenticados podem ler ou alterar o estoque. Não habilite cad
 ## Publicação
 
 Projeto estático pronto para Vercel, sem comando de build.
+
+## Preparação para integração
+
+A área **Backup e exportação** inclui:
+
+- pacote de integração JSON versionado;
+- auditoria de integridade dos dados;
+- backup completo no formato original;
+- arquivos CSV individuais.
+
+O contrato de integração está documentado em `docs/INTEGRATION.md`. O arquivo
+`docs/future-relational-schema.sql` é somente uma proposta para o futuro sistema
+e não deve ser executado no banco atual sem homologação.
